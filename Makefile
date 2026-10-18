@@ -2,7 +2,7 @@ CC = gcc
 CFLAGS = -Wall -O2 -Iinclude
 LDFLAGS = -lmujoco -lglfw -lGL -lm
 
-SRC = src/main.c
+SRC = src/main.c src/controller.c
 TARGET = build/engine
 
 all:
