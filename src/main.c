@@ -1,48 +1,54 @@
 #include <stdio.h>
 #include <stdlib.h>
+#include <string.h>
 #include <mujoco/mujoco.h>
 #include <GLFW/glfw3.h>
+#include "controller.h"
 
 // Modelos do MuJoCo
-mjModel *m = NULL; // Dados estáticos (geometria, massa)
-mjData *d = NULL;  // Dados dinâmicos (posição, velocidade, forças)
+mjModel *m = NULL;
+mjData *d = NULL;
 
-// Estruturas do visualizador
-mjvCamera cam;  // Câmera virtual
-mjvOption opt;  // Opções de renderização
-mjvScene scn;   // Cena gráfica
-mjrContext con; // Contexto GPU OpenGL
-
-// Controle de janela GLFW
-GLFWwindow *window = NULL;
+// Estruturas de visualização
+mjvCamera cam;
+mjvOption opt;
+mjvScene scn;
+mjrContext con;
 
 int main(int argc, const char **argv)
 {
     char error[1000] = "Não foi possível carregar o modelo";
 
-    // 1. Carrega o modelo XML compilado para binário em memória
+    // 1. Carrega modelo e dados
     m = mj_loadXML("models/humanoid.xml", NULL, error, 1000);
     if (!m)
     {
-        printf("Erro ao carregar o modelo: %s\n", error);
+        printf("Erro ao carregar modelo: %s\n", error);
         return 1;
     }
-
-    // 2. Aloca os dados dinâmicos da física
     d = mj_makeData(m);
 
-    // 3. Inicializa GLFW e cria a janela gráfica
+    // 2. Registra o seu controlador de combos em C!
+    init_controller(m);
+
+    // 3. Inicializa GLFW
     if (!glfwInit())
     {
-        printf("Erro ao inicializar GLFW\n");
+        printf("Falha ao iniciar GLFW\n");
         return 1;
     }
 
-    window = glfwCreateWindow(1200, 900, "Robot Engine - MVP", NULL, NULL);
+    GLFWwindow *window = glfwCreateWindow(1200, 900, "Robot Engine - MVP", NULL, NULL);
+    if (!window)
+    {
+        glfwTerminate();
+        printf("Falha ao criar janela\n");
+        return 1;
+    }
     glfwMakeContextCurrent(window);
     glfwSwapInterval(1);
 
-    // 4. Inicializa o renderizador interno do MuJoCo
+    // 4. Inicializa visualizador
     mjv_defaultCamera(&cam);
     mjv_defaultOption(&opt);
     mjv_defaultScene(&scn);
@@ -51,30 +57,32 @@ int main(int argc, const char **argv)
     mjv_makeScene(m, &scn, 2000);
     mjr_makeContext(m, &con, mjFONTSCALE_150);
 
-    printf("Motor de física iniciado com sucesso!\n");
-    printf("Número de juntas (graus de liberdade): %ld\n", (long)m->nv);
-    printf("Número de atuadores/motores: %ld\n", (long)m->nu);
+    // Posiciona a câmera para enquadrar o boneco
+    cam.type = mjCAMERA_FREE;
+    cam.distance = 4.0;
+    cam.elevation = -20.0;
+    cam.azimuth = 90.0;
+    cam.lookat[2] = 1.0;
 
-    // 5. O LOOP PRINCIPAL DA FÍSICA (Aqui nascem os combos)
+    printf("Motor iniciado com sucesso!\n");
+    printf("Juntas: %ld | Atuadores: %ld\n", (long)m->nv, (long)m->nu);
+
+    // 5. Loop principal estável
     while (!glfwWindowShouldClose(window))
     {
         mjtNum simstart = d->time;
 
-        // Avança a física a 60 FPS (fazendo micro-passos de 1ms do integrador)
+        // Loop de física sincronizado a 60Hz
         while (d->time - simstart < 1.0 / 60.0)
         {
-
-            // --- AQUI A GENTE INJETA AS FORÇAS DOS COMBOS NO FUTURO ---
-            // Exemplo: se quisesse aplicar torque no motor 0:
-            // d->ctrl[0] = 50.0;
-
-            mj_step(m, d); // O coração da física roda aqui!
+            mj_step(m, d); // Vai invocar seu controller automaticamente!
         }
 
-        // Renderização gráfica
+        // Obtém dimensões do framebuffer
         mjrRect viewport = {0, 0, 0, 0};
         glfwGetFramebufferSize(window, &viewport.width, &viewport.height);
 
+        // Renderiza
         mjv_updateScene(m, d, &opt, NULL, &cam, mjCAT_ALL, &scn);
         mjr_render(viewport, &scn, &con);
 
@@ -82,7 +90,7 @@ int main(int argc, const char **argv)
         glfwPollEvents();
     }
 
-    // Limpeza de memória
+    // Libera recursos
     mjv_freeScene(&scn);
     mjr_freeContext(&con);
     mj_deleteData(d);
