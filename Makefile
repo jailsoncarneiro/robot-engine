@@ -1,8 +1,8 @@
 CC = gcc
 CFLAGS = -Wall -O2 -Iinclude
-LDFLAGS = -lmujoco -lglfw -lGL -lm
+LDFLAGS = -lmujoco -lglfw -lGL -lm -lpthread
 
-SRC = src/main.c src/controller.c
+SRC = src/main.c src/controller.c src/server.c
 TARGET = build/engine
 
 all:

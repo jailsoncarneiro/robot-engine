@@ -4,6 +4,7 @@
 #include <mujoco/mujoco.h>
 #include <GLFW/glfw3.h>
 #include "controller.h"
+#include "server.h"
 
 // Modelos do MuJoCo
 mjModel *m = NULL;
@@ -67,6 +68,9 @@ int main(int argc, const char **argv)
     printf("Motor iniciado com sucesso!\n");
     printf("Juntas: %ld | Atuadores: %ld\n", (long)m->nv, (long)m->nu);
 
+    // Inicia o servidor de comandos IPC via UDP
+    init_command_server();
+
     // 5. Loop principal estável
     while (!glfwWindowShouldClose(window))
     {
@@ -96,6 +100,8 @@ int main(int argc, const char **argv)
     mj_deleteData(d);
     mj_deleteModel(m);
     glfwTerminate();
+
+    stop_command_server();
 
     return 0;
 }
