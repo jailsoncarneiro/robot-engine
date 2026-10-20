@@ -1,0 +1,53 @@
+<mujoco model="quadcopter">
+  <compiler angle="degree" coordinate="local"/>
+  <option gravity="0 0 -9.81" density="1.2" viscosity="0.00002"/>
+
+  <visual>
+    <headlight ambient="0.5 0.5 0.5" diffuse="0.8 0.8 0.8" specular="0.3 0.3 0.3"/>
+    <rgba haze="0.15 0.25 0.35 1"/>
+  </visual>
+
+  <asset>
+    <texture type="skybox" builtin="gradient" rgb1="0.3 0.5 0.7" rgb2="0 0 0" width="512" height="512"/>
+    <texture name="grid" type="2d" builtin="checker" width="512" height="512" rgb1="0.1 0.2 0.3" rgb2="0.2 0.3 0.4"/>
+    <material name="grid_mat" texture="grid" texrepeat="1 1" texuniform="true" reflectance="0.2"/>
+  </asset>
+
+  <worldbody>
+    <geom name="floor" type="plane" size="1000 1000 0.1" material="grid_mat"/>
+
+    <!-- Corpo do Drone -->
+    <body name="drone" pos="0 0 0.1">
+      <freejoint name="root"/>
+      <geom name="chassis" type="box" size="0.12 0.12 0.02" rgba="0.9 0.4 0.1 1" mass="0.8"/>
+      
+      <!-- Motores com cores para saber a frente e a traseira -->
+      <!-- Frente: Vermelho e Verde -->
+      <body name="motor0" pos="0.15 0.15 0.02">
+        <geom type="cylinder" size="0.02 0.01" rgba="0.9 0.1 0.1 1" mass="0.05"/>
+        <site name="thrust0" pos="0 0 0.01"/>
+      </body>
+      <body name="motor1" pos="-0.15 0.15 0.02">
+        <geom type="cylinder" size="0.02 0.01" rgba="0.1 0.9 0.1 1" mass="0.05"/>
+        <site name="thrust1" pos="0 0 0.01"/>
+      </body>
+
+      <!-- Traseira: Azul e Amarelo -->
+      <body name="motor2" pos="-0.15 -0.15 0.02">
+        <geom type="cylinder" size="0.02 0.01" rgba="0.1 0.1 0.9 1" mass="0.05"/>
+        <site name="thrust2" pos="0 0 0.01"/>
+      </body>
+      <body name="motor3" pos="0.15 -0.15 0.02">
+        <geom type="cylinder" size="0.02 0.01" rgba="0.9 0.9 0.1 1" mass="0.05"/>
+        <site name="thrust3" pos="0 0 0.01"/>
+      </body>
+    </body>
+  </worldbody>
+
+  <actuator>
+    <motor name="rotor_front_right" site="thrust0" gear="0 0 1 0 0 0" ctrlrange="-15 20"/>
+    <motor name="rotor_front_left"  site="thrust1" gear="0 0 1 0 0 0" ctrlrange="-15 20"/>
+    <motor name="rotor_back_left"   site="thrust2" gear="0 0 1 0 0 0" ctrlrange="-15 20"/>
+    <motor name="rotor_back_right"  site="thrust3" gear="0 0 1 0 0 0" ctrlrange="-15 20"/>
+  </actuator>
+</mujoco>

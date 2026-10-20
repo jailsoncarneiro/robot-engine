@@ -3,22 +3,24 @@
 
 #define UDP_PORT 9002
 
-// Comandos possíveis suportados pelo motor
 typedef enum
 {
     CMD_IDLE = 0,
-    CMD_THRUST, // Força total nos motores
-    CMD_CROUCH, // Flexiona juntas
-    CMD_RELAX   // Desliga torque (boneco de pano)
+    CMD_TAKEOFF,  // Decolar e pairar
+    CMD_HOVER,    // Trava o drone no ar no lugar!
+    CMD_BACKFLIP, // Fazer a manobra de giro acrobático 360
+    CMD_TURTLE,   // Desvira o drone no chão
+    CMD_KILL,     // Corta tudo no ar e deixa cair de cabeça para baixo
+    CMD_LAND,     // Pousar / Desligar
+    // Comandos legados para bípedes/robôs
+    CMD_THRUST,
+    CMD_CROUCH,
+    CMD_RELAX
 } RobotCommand;
 
-// Inicializa a thread do servidor UDP
 int init_command_server(void);
-
-// Retorna o comando atual recebido da rede (thread-safe simples)
 RobotCommand get_current_command(void);
-
-// Para a thread do servidor no encerramento
+unsigned long get_packet_id(void);
 void stop_command_server(void);
 
 #endif

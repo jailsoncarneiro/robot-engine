@@ -9,6 +9,7 @@
 static pthread_t server_thread;
 static volatile int running = 1;
 static volatile RobotCommand current_cmd = CMD_IDLE;
+static volatile unsigned long packet_counter = 0;
 
 static void *udp_listener_worker(void *arg)
 {
@@ -16,31 +17,27 @@ static void *udp_listener_worker(void *arg)
     struct sockaddr_in servaddr, cliaddr;
     char buffer[256];
 
-    // 1. Cria socket UDP
     if ((sockfd = socket(AF_INET, SOCK_DGRAM, 0)) < 0)
     {
-        perror("[IPC Server] Erro ao criar socket UDP");
+        perror("[IPC Server] Erro socket UDP");
         return NULL;
     }
 
     memset(&servaddr, 0, sizeof(servaddr));
     memset(&cliaddr, 0, sizeof(cliaddr));
-
     servaddr.sin_family = AF_INET;
     servaddr.sin_addr.s_addr = INADDR_ANY;
     servaddr.sin_port = htons(UDP_PORT);
 
-    // 2. Faz o bind na porta 9002
     if (bind(sockfd, (const struct sockaddr *)&servaddr, sizeof(servaddr)) < 0)
     {
-        perror("[IPC Server] Erro no bind UDP");
+        perror("[IPC Server] Erro bind UDP");
         close(sockfd);
         return NULL;
     }
 
-    printf("[IPC Server] Escutando comandos UDP na porta %d...\n", UDP_PORT);
+    printf("[IPC Server] Escutando porta %d...\n", UDP_PORT);
 
-    // 3. Loop de escuta de comandos
     while (running)
     {
         socklen_t len = sizeof(cliaddr);
@@ -50,28 +47,39 @@ static void *udp_listener_worker(void *arg)
         if (n > 0)
         {
             buffer[n] = '\0';
-
-            // Remove quebra de linha se houver
             if (buffer[n - 1] == '\n')
                 buffer[n - 1] = '\0';
 
-            printf("[IPC Server] Comando recebido: %s\n", buffer);
+            packet_counter++; // Incrementa ID único do comando
 
-            // Parser dos comandos
-            if (strcmp(buffer, "THRUST") == 0)
+            printf("[IPC Server] [#%lu] Comando recebido: %s\n", packet_counter, buffer);
+
+            if (strcmp(buffer, "TAKEOFF") == 0)
             {
-                current_cmd = CMD_THRUST;
+                current_cmd = CMD_TAKEOFF;
             }
-            else if (strcmp(buffer, "CROUCH") == 0)
+            else if (strcmp(buffer, "HOVER") == 0)
             {
-                current_cmd = CMD_CROUCH;
+                current_cmd = CMD_HOVER;
             }
-            else if (strcmp(buffer, "RELAX") == 0)
+            else if (strcmp(buffer, "BACKFLIP") == 0)
             {
-                current_cmd = CMD_RELAX;
+                current_cmd = CMD_BACKFLIP;
+            }
+            else if (strcmp(buffer, "TURTLE") == 0)
+            {
+                current_cmd = CMD_TURTLE;
+            }
+            else if (strcmp(buffer, "KILL") == 0 || strcmp(buffer, "SHIT") == 0)
+            {
+                current_cmd = CMD_KILL; // Derruba o bicho no chão!
+            }
+            else if (strcmp(buffer, "LAND") == 0)
+            {
+                current_cmd = CMD_LAND;
             }
         }
-        usleep(5000); // 5ms sleep para não fritar a CPU esperando pacote
+        usleep(5000);
     }
 
     close(sockfd);
@@ -89,9 +97,13 @@ RobotCommand get_current_command(void)
     return current_cmd;
 }
 
+unsigned long get_packet_id(void)
+{
+    return packet_counter;
+}
+
 void stop_command_server(void)
 {
     running = 0;
     pthread_join(server_thread, NULL);
-    printf("[IPC Server] Servidor finalizado.\n");
 }
